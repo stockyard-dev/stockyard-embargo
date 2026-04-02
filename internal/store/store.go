@@ -1,90 +1,27 @@
 package store
-
-import (
-	"database/sql"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
-	_ "modernc.org/sqlite"
-)
-
-type DB struct { db *sql.DB }
-
-type Embargo struct {
-	ID           string   `json:"id"`
-	Title        string   `json:"title"`
-	Content      string   `json:"content"`
-	ReleaseAt    string   `json:"release_at"`
-	Status       string   `json:"status"`
-	CreatedAt    string   `json:"created_at"`
-}
-
-func Open(dataDir string) (*DB, error) {
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return nil, err
-	}
-	dsn := filepath.Join(dataDir, "embargo.db") + "?_journal_mode=WAL&_busy_timeout=5000"
-	db, err := sql.Open("sqlite", dsn)
-	if err != nil {
-		return nil, err
-	}
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS embargos (
-			id TEXT PRIMARY KEY,\n\t\t\ttitle TEXT DEFAULT '',\n\t\t\tcontent TEXT DEFAULT '',\n\t\t\trelease_at TEXT DEFAULT '',\n\t\t\tstatus TEXT DEFAULT 'pending',
-			created_at TEXT DEFAULT (datetime('now'))
-		)`)
-	if err != nil {
-		return nil, fmt.Errorf("migrate: %w", err)
-	}
+import ("database/sql";"fmt";"os";"path/filepath";"time";_ "modernc.org/sqlite")
+type DB struct{ db *sql.DB }
+type Flag struct { ID string `json:"id"`; Key string `json:"key"`; Name string `json:"name"`; Description string `json:"description,omitempty"`; Enabled bool `json:"enabled"`; Percentage int `json:"percentage"`; CreatedAt string `json:"created_at"`; UpdatedAt string `json:"updated_at"` }
+func Open(d string) (*DB, error) {
+	if err := os.MkdirAll(d, 0755); err != nil { return nil, err }
+	db, err := sql.Open("sqlite", filepath.Join(d, "embargo.db")+"?_journal_mode=WAL&_busy_timeout=5000")
+	if err != nil { return nil, err }
+	db.Exec(`CREATE TABLE IF NOT EXISTS flags (id TEXT PRIMARY KEY, key TEXT UNIQUE NOT NULL, name TEXT DEFAULT '', description TEXT DEFAULT '', enabled INTEGER DEFAULT 0, percentage INTEGER DEFAULT 100, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`)
 	return &DB{db: db}, nil
 }
-
 func (d *DB) Close() error { return d.db.Close() }
-
 func genID() string { return fmt.Sprintf("%d", time.Now().UnixNano()) }
-
-func (d *DB) Create(e *Embargo) error {
-	e.ID = genID()
-	e.CreatedAt = time.Now().UTC().Format(time.RFC3339)
-	_, err := d.db.Exec(`INSERT INTO embargos (id, title, content, release_at, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		e.ID, e.Title, e.Content, e.ReleaseAt, e.Status, e.CreatedAt)
-	return err
+func now() string { return time.Now().UTC().Format(time.RFC3339) }
+func (d *DB) scan(s interface{Scan(...any)error}) *Flag {
+	var f Flag; var en int; if s.Scan(&f.ID,&f.Key,&f.Name,&f.Description,&en,&f.Percentage,&f.CreatedAt,&f.UpdatedAt)!=nil{return nil}; f.Enabled=en==1; return &f
 }
-
-func (d *DB) Get(id string) *Embargo {
-	row := d.db.QueryRow(`SELECT id, title, content, release_at, status, created_at FROM embargos WHERE id=?`, id)
-	var e Embargo
-	if err := row.Scan(&e.ID, &e.Title, &e.Content, &e.ReleaseAt, &e.Status, &e.CreatedAt); err != nil {
-		return nil
-	}
-	return &e
-}
-
-func (d *DB) List() []Embargo {
-	rows, err := d.db.Query(`SELECT id, title, content, release_at, status, created_at FROM embargos ORDER BY created_at DESC`)
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-	var result []Embargo
-	for rows.Next() {
-		var e Embargo
-		if err := rows.Scan(&e.ID, &e.Title, &e.Content, &e.ReleaseAt, &e.Status, &e.CreatedAt); err != nil {
-			continue
-		}
-		result = append(result, e)
-	}
-	return result
-}
-
-func (d *DB) Delete(id string) error {
-	_, err := d.db.Exec(`DELETE FROM embargos WHERE id=?`, id)
-	return err
-}
-
-func (d *DB) Count() int {
-	var n int
-	d.db.QueryRow(`SELECT COUNT(*) FROM embargos`).Scan(&n)
-	return n
-}
+func (d *DB) Create(f *Flag) error { f.ID=genID();f.CreatedAt=now();f.UpdatedAt=f.CreatedAt; en:=0;if f.Enabled{en=1}; _,err:=d.db.Exec(`INSERT INTO flags VALUES(?,?,?,?,?,?,?,?)`,f.ID,f.Key,f.Name,f.Description,en,f.Percentage,f.CreatedAt,f.UpdatedAt); return err }
+func (d *DB) Get(id string) *Flag { return d.scan(d.db.QueryRow(`SELECT * FROM flags WHERE id=?`,id)) }
+func (d *DB) GetByKey(key string) *Flag { return d.scan(d.db.QueryRow(`SELECT * FROM flags WHERE key=?`,key)) }
+func (d *DB) List() []Flag { rows,_:=d.db.Query(`SELECT * FROM flags ORDER BY key`); if rows==nil{return nil}; defer rows.Close(); var o []Flag; for rows.Next(){if f:=d.scan(rows);f!=nil{o=append(o,*f)}}; return o }
+func (d *DB) Update(id string, f *Flag) error { en:=0;if f.Enabled{en=1}; _,err:=d.db.Exec(`UPDATE flags SET name=?,description=?,enabled=?,percentage=?,updated_at=? WHERE id=?`,f.Name,f.Description,en,f.Percentage,now(),id); return err }
+func (d *DB) Toggle(id string) error { _,err:=d.db.Exec(`UPDATE flags SET enabled=1-enabled,updated_at=? WHERE id=?`,now(),id); return err }
+func (d *DB) Delete(id string) error { _,err:=d.db.Exec(`DELETE FROM flags WHERE id=?`,id); return err }
+func (d *DB) Evaluate(key string) (bool, *Flag) { f:=d.GetByKey(key); if f==nil||!f.Enabled{return false,f}; return true,f }
+func (d *DB) Count() int { var n int; d.db.QueryRow(`SELECT COUNT(*) FROM flags`).Scan(&n); return n }
+func (d *DB) EnabledCount() int { var n int; d.db.QueryRow(`SELECT COUNT(*) FROM flags WHERE enabled=1`).Scan(&n); return n }

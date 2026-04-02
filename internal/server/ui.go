@@ -1,48 +1,21 @@
 package server
-
 import "net/http"
-
-func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(dashHTML))
-}
-
-const dashHTML = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Embargo</title>
-<style>
-:root{--bg:#1a1410;--bg2:#241e18;--bg3:#2e261e;--rust:#c45d2c;--rl:#e8753a;--leather:#a0845c;--cream:#f0e6d3;--cd:#bfb5a3;--cm:#7a7060;--gold:#d4a843;--green:#4a9e5c;--red:#c44040;--mono:'JetBrains Mono',monospace;--serif:'Libre Baskerville',Georgia,serif}
-*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--cream);font-family:var(--mono);font-size:13px}
-a{color:var(--rl);text-decoration:none}a:hover{color:var(--gold)}
-.hdr{padding:.7rem 1.2rem;border-bottom:1px solid var(--bg3);display:flex;justify-content:space-between;align-items:center}
-.hdr h1{font-family:var(--serif);font-size:1rem}.hdr h1 span{color:var(--rl)}
-.stats{font-size:.7rem;color:var(--leather)}.stats b{color:var(--cream);font-weight:600}
-.main{max-width:700px;margin:0 auto;padding:1.5rem}
-.card{background:var(--bg2);border:1px solid var(--bg3);padding:.8rem 1rem;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center}
-.card-title{font-size:.8rem;font-weight:600}.card-sub{font-size:.65rem;color:var(--cd)}
-.btn{font-family:var(--mono);font-size:.7rem;padding:.3rem .6rem;border:1px solid;cursor:pointer;background:transparent}
-.btn-p{border-color:var(--rust);color:var(--rl)}.btn-p:hover{background:var(--rust);color:var(--cream)}
-.btn-d{border-color:var(--bg3);color:var(--cm)}.btn-d:hover{border-color:var(--red);color:var(--red)}
-input{background:var(--bg);border:1px solid var(--bg3);color:var(--cream);padding:.4rem .6rem;font-family:var(--mono);font-size:.8rem;width:100%;outline:none;margin-bottom:.5rem}
-input:focus{border-color:var(--rust)}
-.empty{text-align:center;padding:2rem;color:var(--cm);font-style:italic;font-family:var(--serif)}
-</style>
+func(s *Server)dashboard(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write([]byte(dashHTML))}
+const dashHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Embargo</title>
+<style>:root{--bg:#1a1410;--bg2:#241e18;--bg3:#2e261e;--rust:#c45d2c;--rl:#e8753a;--leather:#a0845c;--cream:#f0e6d3;--cd:#bfb5a3;--cm:#7a7060;--gold:#d4a843;--green:#4a9e5c;--red:#c44040;--mono:'JetBrains Mono',Consolas,monospace;--serif:'Libre Baskerville',Georgia,serif}*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--cream);font-family:var(--mono);font-size:13px;line-height:1.6}.hdr{padding:.6rem 1.2rem;border-bottom:1px solid var(--bg3);display:flex;justify-content:space-between;align-items:center}.hdr h1{font-family:var(--serif);font-size:1rem}.hdr h1 span{color:var(--rl)}.main{max-width:700px;margin:0 auto;padding:1rem}.btn{font-family:var(--mono);font-size:.68rem;padding:.3rem .6rem;border:1px solid;cursor:pointer;background:transparent}.btn-p{border-color:var(--rust);color:var(--rl)}.btn-p:hover{background:var(--rust);color:var(--cream)}.overview{display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.7rem;color:var(--leather)}.overview .stat b{display:block;font-size:1.2rem;color:var(--cream)}.flag-row{display:flex;align-items:center;gap:.7rem;padding:.6rem;background:var(--bg2);border:1px solid var(--bg3);margin-bottom:.3rem}.toggle{width:36px;height:20px;border-radius:10px;cursor:pointer;position:relative;transition:.2s}.toggle.on{background:var(--green)}.toggle.off{background:var(--bg3)}.toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:var(--cream);position:absolute;top:2px;left:2px;transition:.2s}.toggle.on::after{left:18px}.flag-info{flex:1}.flag-key{font-size:.8rem;font-weight:600}.flag-desc{font-size:.68rem;color:var(--cm)}.flag-pct{font-size:.65rem;color:var(--leather)}.empty{text-align:center;padding:2rem;color:var(--cm);font-style:italic;font-family:var(--serif)}.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:100}.modal{background:var(--bg2);border:1px solid var(--bg3);padding:1.5rem;width:90%;max-width:450px}.modal h2{font-family:var(--serif);font-size:.9rem;margin-bottom:1rem}label.fl{display:block;font-size:.65rem;color:var(--leather);text-transform:uppercase;letter-spacing:1px;margin-bottom:.2rem;margin-top:.5rem}input[type=text],input[type=number]{background:var(--bg);border:1px solid var(--bg3);color:var(--cream);padding:.35rem .5rem;font-family:var(--mono);font-size:.78rem;width:100%;outline:none}</style>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-</head><body>
-<div class="hdr"><h1><span>Embargo</span></h1><div class="stats">Total: <b id="ct">-</b></div></div>
-<div class="main">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-<span style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--rust)">All embargos</span>
-<button class="btn btn-p" onclick="showCreate()">+ New</button>
-</div>
-<div id="list"></div>
-</div>
+</head><body><div class="hdr"><h1><span>Embargo</span></h1><button class="btn btn-p" onclick="showNew()">+ Flag</button></div>
+<div class="main"><div class="overview" id="ov"></div><div id="list"></div></div><div id="modal"></div>
 <script>
-async function load(){const r=await fetch('/api/embargos');const d=await r.json();document.getElementById('ct').textContent=d.count;
-const el=document.getElementById('list');if(!d.embargos.length){el.innerHTML='<div class="empty">No embargos yet.</div>';return}
-el.innerHTML=d.embargos.map(e=>'<div class="card"><div><div class="card-title">'+esc(e.name||e.title||e.id)+'</div><div class="card-sub">'+esc(e.created_at)+'</div></div><button class="btn btn-d" onclick="del(\''+e.id+'\')">Delete</button></div>').join('')}
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-function showCreate(){const n=prompt('Name:');if(!n)return;fetch('/api/embargos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})}).then(load)}
-async function del(id){if(!confirm('Delete?'))return;await fetch('/api/embargos/'+id,{method:'DELETE'});load()}
-load();setInterval(load,30000)
-</script></body></html>` + "`"
+let flags=[];async function api(u,o){return(await fetch(u,o)).json()}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+async function load(){const[fd,sd]=await Promise.all([api('/api/flags'),api('/api/stats')]);flags=fd.flags||[];
+document.getElementById('ov').innerHTML='<div class="stat"><b>'+sd.total+'</b>Flags</div><div class="stat"><b style="color:var(--green)">'+sd.enabled+'</b>Enabled</div><div class="stat"><b style="color:var(--cm)">'+(sd.total-sd.enabled)+'</b>Disabled</div>';
+document.getElementById('list').innerHTML=flags.length?flags.map(f=>'<div class="flag-row"><div class="toggle '+(f.enabled?'on':'off')+'" onclick="toggle(\''+f.id+'\')"></div><div class="flag-info"><div class="flag-key">'+esc(f.key)+(f.name&&f.name!==f.key?' <span style="color:var(--cm);font-size:.7rem">'+esc(f.name)+'</span>':'')+'</div>'+(f.description?'<div class="flag-desc">'+esc(f.description)+'</div>':'')+'</div><span class="flag-pct">'+f.percentage+'%</span><span style="cursor:pointer;font-size:.6rem;color:var(--cm)" onclick="del(\''+f.id+'\')">del</span></div>').join(''):'<div class="empty">No feature flags yet.</div>'}
+async function toggle(id){await api('/api/flags/'+id+'/toggle',{method:'POST'});load()}
+async function del(id){if(!confirm('Delete?'))return;await api('/api/flags/'+id,{method:'DELETE'});load()}
+function showNew(){document.getElementById('modal').innerHTML='<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><h2>New Flag</h2><label class="fl">Key</label><input type="text" id="nf-key" placeholder="enable_new_ui"><label class="fl">Name</label><input type="text" id="nf-name"><label class="fl">Description</label><input type="text" id="nf-desc"><label class="fl">Rollout %</label><input type="number" id="nf-pct" value="100"><div style="display:flex;gap:.5rem;margin-top:1rem"><button class="btn btn-p" onclick="save()">Create</button><button class="btn" style="border-color:var(--bg3);color:var(--cm)" onclick="closeModal()">Cancel</button></div></div></div>'}
+async function save(){const b={key:document.getElementById('nf-key').value,name:document.getElementById('nf-name').value,description:document.getElementById('nf-desc').value,percentage:parseInt(document.getElementById('nf-pct').value)||100,enabled:false};if(!b.key){alert('Key required');return};await api('/api/flags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});closeModal();load()}
+function closeModal(){document.getElementById('modal').innerHTML=''}
+load()
+</script></body></html>`
